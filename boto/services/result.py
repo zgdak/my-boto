@@ -76,9 +76,13 @@ class ResultProcessor:
         self.calculate_stats(record)
         outputs = record['OutputKey'].split(',')
         if 'OutputBucket' in record:
-            bucket = boto.lookup('s3', record['OutputBucket'])
+            #bucket = boto.lookup('s3', record['OutputBucket'])
+            conn = boto.connect_s3()
+            bucket = conn.get_bucket(record['OutputBucket'])
         else:
-            bucket = boto.lookup('s3', record['Bucket'])
+            #bucket = boto.lookup('s3', record['Bucket'])
+            conn = boto.connect_s3()
+            bucket = conn.get_bucket(record['Bucket'])
         for output in outputs:
             if get_file:
                 key_name = output.split(';')[0]
@@ -98,9 +102,8 @@ class ResultProcessor:
             m = self.queue.read()
 
     def get_results_from_domain(self, path, get_file=True):
-        rs = self.domain.query("['Batch'='%s']" % self.batch)
-        for item in rs:
-            self.process_record(item, path, get_file)
+        item = self.domain.get_item(self.batch)
+        self.process_record(item, path, get_file)
 
     def get_results_from_bucket(self, path):
         bucket = self.sd.get_obj('output_bucket')

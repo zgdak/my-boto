@@ -24,6 +24,7 @@ from boto.services.servicedef import ServiceDef
 from boto.services.submit import Submitter
 from boto.services.result import ResultProcessor
 import boto
+import boto.ec2
 import sys, os, StringIO
 
 class BS(object):
@@ -50,6 +51,7 @@ class BS(object):
                                help="the path to local directory for submit and retrieve")
         self.parser.add_option("-k", "--keypair", action="store", type="string", dest="keypair",
                                help="the SSH keypair used with launched instance(s)")
+        self.parser.set_defaults(keypair='pl-aws-hosts')
         self.parser.add_option("-l", "--leave", action="store_true", dest="leave",
                                help="leave the files (don't retrieve) files during retrieve command")
         self.parser.set_defaults(leave=False)
@@ -60,6 +62,9 @@ class BS(object):
                                help="directories that should be ignored by submit command")
         self.parser.add_option("-b", "--batch-id", action="store", type="string", dest="batch",
                                help="batch identifier required by the retrieve command")
+        self.parser.add_option("-r", "--region", action="store", type="string", 
+                               help="amazon region default set to eu-west-1 ")
+        self.parser.set_defaults(region='eu-west-1')
 
     def print_command_help(self):
         print '\nCommands:'
@@ -103,10 +108,11 @@ class BS(object):
     def do_start(self):
         ami_id = self.sd.get('ami_id')
         instance_type = self.sd.get('instance_type', 'm1.small')
-        security_group = self.sd.get('security_group', 'default')
+        security_group = self.sd.get('security_group', 'auto_service')
         if not ami_id:
             self.parser.error('ami_id option is required when starting the service')
-        ec2 = boto.connect_ec2()
+        #ec2 = boto.connect_ec2()
+        ec2 = boto.ec2.connect_to_region(self.sd.region)
         if not self.sd.has_section('Credentials'):
             self.sd.add_section('Credentials')
             self.sd.set('Credentials', 'aws_access_key_id', ec2.aws_access_key_id)

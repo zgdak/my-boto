@@ -22,6 +22,9 @@
 from boto.pyami.config import Config
 from boto.services.message import ServiceMessage
 import boto
+import boto.s3
+import boto.sdb
+import boto.sqs
 
 class ServiceDef(Config):
 
@@ -34,6 +37,11 @@ class ServiceDef(Config):
             self.name = script.split('.')[-1]
         else:
             self.name = None
+        region = Config.get(self, 'Pyami', 'region')
+        if region:
+            self.region = region
+        else:
+            self.region = 'eu-west-1'
 
 
     def get(self, name, default=None):
@@ -77,13 +85,19 @@ class ServiceDef(Config):
         if not val:
             return None
         if name.find('queue') >= 0:
-            obj = boto.lookup('sqs', val)
+            #obj = boto.lookup('sqs', val)
+            conn = boto.sqs.connect_to_region(self.region)
+            obj = conn.get_queue(val)
             if obj:
                 obj.set_message_class(ServiceMessage)
         elif name.find('bucket') >= 0:
-            obj = boto.lookup('s3', val)
+            #obj = boto.lookup('s3', val)
+            conn = boto.s3.connect_to_region(self.region)
+            obj = conn.get_bucket(val)
         elif name.find('domain') >= 0:
-            obj = boto.lookup('sdb', val)
+            #obj = boto.lookup('sdb', val)
+            conn = boto.sdb.connect_to_region(self.region)
+            obj = conn.get_domain(val)
         else:
             obj = None
         return obj

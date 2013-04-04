@@ -20,6 +20,7 @@
 # IN THE SOFTWARE.
 
 import boto
+import boto.s3
 from boto.services.message import ServiceMessage
 from boto.services.servicedef import ServiceDef
 from boto.pyami.scriptbase import ScriptBase
@@ -39,6 +40,7 @@ class Service(ScriptBase):
         self.name = self.__class__.__name__
         self.working_dir = boto.config.get('Pyami', 'working_dir')
         self.sd = ServiceDef(config_file)
+        self.region = self.sd.region
         self.retry_count = self.sd.getint('retry_count', 5)
         self.loop_delay = self.sd.getint('loop_delay', 30)
         self.processing_time = self.sd.getint('processing_time', 60)
@@ -72,7 +74,9 @@ class Service(ScriptBase):
         key_name = message['InputKey']
         file_name = os.path.join(self.working_dir, message.get('OriginalFileName', 'in_file'))
         boto.log.info('get_file: %s/%s to %s' % (bucket_name, key_name, file_name))
-        bucket = boto.lookup('s3', bucket_name)
+        #bucket = boto.lookup('s3', bucket_name)
+        conn = boto.connect_s3()
+        bucket = conn.get_bucket(bucket_name)
         key = bucket.new_key(key_name)
         key.get_contents_to_filename(os.path.join(self.working_dir, file_name))
         return file_name
@@ -84,7 +88,9 @@ class Service(ScriptBase):
     # store result file in S3
     def put_file(self, bucket_name, file_path, key_name=None):
         boto.log.info('putting file %s as %s.%s' % (file_path, bucket_name, key_name))
-        bucket = boto.lookup('s3', bucket_name)
+        #bucket = boto.lookup('s3', bucket_name)
+        conn = boto.connect_s3()
+        bucket = conn.get_bucket(bucket_name)
         key = bucket.new_key(key_name)
         key.set_contents_from_filename(file_path)
         return key
